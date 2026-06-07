@@ -117,7 +117,7 @@ with col_graf1:
                 values="Valor",
                 names="Categoria",
                 hole=0.4,
-                color_discrete_sequence=px.colors.qualitative.Slate
+                color_discrete_sequence=px.colors.qualitative.Pastel
             )
             fig.update_layout(margin=dict(t=10, b=10, l=10, r=10), height=300)
             st.plotly_chart(fig, use_container_width=True)
