@@ -118,7 +118,7 @@ def init_db():
     cursor.execute("SELECT COUNT(*) as count FROM categorias")
     row = cursor.fetchone()
     if row["count"] == 0:
-       categorias_padrao = [
+        categorias_padrao = [
             ("Aluguel", "saida"),
             ("Luz", "saida"),
             ("Água", "saida"),
