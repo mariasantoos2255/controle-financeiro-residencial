@@ -118,17 +118,20 @@ def init_db():
     cursor.execute("SELECT COUNT(*) as count FROM categorias")
     row = cursor.fetchone()
     if row["count"] == 0:
-        categorias_padrao = [
+       categorias_padrao = [
             ("Aluguel", "saida"),
             ("Luz", "saida"),
             ("Água", "saida"),
             ("Internet", "saida"),
-            ("Gás enchendo/LPG", "saida"),
+            ("Gás", "saida"),
             ("Mercado", "saida"),
             ("Faxina/Diarista", "saida"),
             ("Manutenção da Casa", "saida"),
-            ("Cota Inicial", "entrada"),
-            ("Outros", "saida")
+            ("Outros", "saida"),
+            ("Pagamento Aluguel", "entrada"),
+            ("Pagamento Contas", "entrada"),
+            ("Reembolso", "entrada"),
+            ("Cota Inicial", "entrada")
         ]
         cursor.executemany(
             "INSERT INTO categorias (nome, tipo) VALUES (?, ?)",
