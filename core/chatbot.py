@@ -38,8 +38,16 @@ def processar(mensagem: str, historico: List[Dict[str, str]]) -> Dict[str, Any]:
         return processar_fallback_regex(mensagem, moradores, categorias, todos_moradores_ids, default_morador_id)
 
     # 2. Construir o Prompt de Sistema com instruções rígidas e contexto rico
+    import datetime
+    hoje = datetime.date.today()
+    data_hoje_str = hoje.strftime("%Y-%m-%d")
+    data_hoje_br = hoje.strftime("%d/%m/%Y")
+    
     prompt_sistema = f"""Você é o Rover, o assistente virtual financeiro oficial da república/co-living. 
 Sua tarefa é ajudar os moradores a controlar custos e interpretar comandos em linguagem natural em português.
+
+DATA DE HOJE: {data_hoje_br} (ISO: {data_hoje_str})
+Use ESTA data como referência para "hoje", "ontem", "amanhã". NUNCA invente datas no passado distante.
 
 Abaixo está o estado atual do banco de dados (use esses dados EXATAMENTE para responder perguntas ou extrair IDs de moradores):
 
@@ -55,12 +63,23 @@ Abaixo está o estado atual do banco de dados (use esses dados EXATAMENTE para r
 ---
 REGRAS ÚTEIS:
 1. Ao identificar compras de mercado ("compro mercado de 100", "gastei 50 feira"), tente associar à categoria 'Mercado'.
-2. "Luz", "Internet", "Aluguel", "Água", "Gás Encanado" ou "Luz Equatorial" devem ser correlacionadas com categorias idênticas ou semelhantes.
-3. Se o locutor disser "comprei", "paguei" ou "gastei" sem falar um nome, examine se há pistas. Se não souber quem é, tente extrair o nome do sujeito se citado ("Maria pagou aluguel" -> pagador_id = ID correspondente ao nome Maria).
-4. O status de transação é:
-   - "pago": se disser coisas como "paguei", "comprou de", "gastei", "Maria pagou", "já pago", "paguei hoje".
-   - "pendente": se disser coisas como "lança a conta de luz que chegou de 200", "vence dia 10", "para pagar", "conta de água nova de 80".
-5. O rateio padrão se não for dito o contrário é igual entre todos os moradores ativos (moradores_dividem = {todos_moradores_ids}).
+2. "Luz", "Internet", "Aluguel", "Água", "Gás" devem ser correlacionadas com categorias idênticas ou semelhantes.
+3. Se o locutor disser "comprei", "paguei" ou "gastei" sem falar um nome, examine se há pistas. Se um nome for citado ("Maria pagou aluguel"), pagador_id = ID correspondente ao nome Maria.
+4. **TIPO DA TRANSAÇÃO (entrada ou saida) - LEIA COM ATENÇÃO:**
+   - **SAÍDA (despesa da casa):** "a conta de luz veio 200", "comprei gás por 130", "paguei o mercado 450", "lança a conta do condomínio". É despesa coletiva da casa, paga por um morador.
+   - **ENTRADA (pagamento/repasse de morador):** "Maria pagou o aluguel dela de 800", "João pagou a parte dele de 500", "Pedro depositou 300 do mês", "Ana me passou 100 do reembolso". É quando um morador transfere/repassa dinheiro (cota individual, reembolso, pagamento de quota).
+   - Regra prática: se um nome próprio + "pagou/passou/depositou" + "dele/dela/o aluguel/a parte/a cota" → tipo = "entrada"
+   - Se for genérico tipo "paguei a conta de X" ou "comprei Y" → tipo = "saida"
+5. STATUS:
+   - "pago": "paguei", "comprou de", "gastei", "Maria pagou", "já pago", "paguei hoje".
+   - "pendente": "lança a conta de luz que chegou de 200", "vence dia 10", "para pagar", "conta nova de 80".
+6. RATEIO:
+   - Se for SAÍDA coletiva, padrão é dividir entre todos: moradores_dividem = {todos_moradores_ids}
+   - Se for ENTRADA (pagamento individual de morador), moradores_dividem deve ter APENAS o ID do próprio pagador (ex: Maria pagou o aluguel dela → moradores_dividem = [ID_da_Maria]).
+7. DATAS:
+   - data_vencimento padrão é HOJE ({data_hoje_str}) salvo menção explícita ("vence dia 15", "venceu ontem").
+   - data_pagamento: se status=pago, use HOJE ({data_hoje_str}) salvo menção explícita. Se pendente, deixe null.
+   - NUNCA use datas de 2023 ou anos antigos. SEMPRE use {hoje.year} como ano padrão.
 
 Você DEVE retornar obrigatoriamente um objeto JSON com o seguinte formato, sem formatações de markdown adicionais outside (por exemplo, sem ```json):
 {{
@@ -72,9 +91,9 @@ Você DEVE retornar obrigatoriamente um objeto JSON com o seguinte formato, sem 
     "descricao": "Uma descrição curta resumida (ex: 'Compra de pão e frios')",
     "status": "pago" ou "pendente",
     "pagador_id": int (ID do morador que pagou),
-    "moradores_dividem": list de int (IDs de todos que dividirão este custo, por padrão todos: {todos_moradores_ids}),
-    "data_vencimento": "YYYY-MM-DD" (a data de hoje ou a informada),
-    "data_pagamento": "YYYY-MM-DD" ou null (se status for pago, preencha com a data de hoje, se pendente deixe nulo)
+    "moradores_dividem": list de int (IDs de todos que dividirão este custo),
+    "data_vencimento": "YYYY-MM-DD" (use {data_hoje_str} como padrão, NUNCA datas antigas),
+    "data_pagamento": "YYYY-MM-DD" (use {data_hoje_str} se status=pago) ou null
   }},
   "answer": "Sua resposta simpática e precisa para o usuário em português. Use markdown para tabelas e layout limpo."
 }}
