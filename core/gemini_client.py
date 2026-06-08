@@ -40,7 +40,7 @@ def gerar_embedding(texto: str) -> Optional[List[float]]:
         try:
             # Fallback para o modelo alternativo de embedding se disponível
             resultado = genai.embed_content(
-                model="models/embedding-001",
+                model="models/text-embedding-004",
                 contents=texto,
                 task_type="retrieval_document"
             )
@@ -60,7 +60,7 @@ def chat(mensagem: str, historico: List[Dict[str, str]], system_instruction: Opt
         genai.configure(api_key=api_key)
         
         # Usamos o modelo gemini-2.5-flash ou gemini-1.5-flash
-        model_name = "models/gemini-1.5-flash"
+        model_name = "models/gemini-2.5-flash"
         
         # Preparar histórico no formato exigido pelo SDK
         # Formato esperado: list de {'role': 'user'|'model', 'parts': [text]}
