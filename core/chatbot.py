@@ -88,9 +88,10 @@ Se a intenção for 'general', responda de maneira descontraída dando dicas de 
         import google.generativeai as genai
         genai.configure(api_key=api_key)
         
-        # Como o helper de chat já foi definido, podemos usá-lo ou chamar diretamente o GenerativeModel
+        # system_instruction vai no construtor do GenerativeModel, não no generate_content
         model = genai.GenerativeModel(
             model_name="models/gemini-1.5-flash",
+            system_instruction=prompt_sistema,
             generation_config={"response_mime_type": "application/json"}
         )
         
@@ -104,8 +105,7 @@ Se a intenção for 'general', responda de maneira descontraída dando dicas de 
             })
             
         res = model.generate_content(
-            contents=contents_history + [{"role": "user", "parts": [mensagem]}],
-            system_instruction=prompt_sistema
+            contents=contents_history + [{"role": "user", "parts": [mensagem]}]
         )
         
         texto_resposta = res.text.strip()
